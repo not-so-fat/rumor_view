@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rumor_view",
-    version="0.0.2",
+    version="0.0.3",
     author="@not-so-fat",
     author_email="conjurer.not.so.fat@gmail.com",
     description="Visualization of column value relationship",

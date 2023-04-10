@@ -1,5 +1,6 @@
 import copy
 import logging
+import itertools
 import numpy
 from scipy.sparse import csc_array
 import pandas
@@ -58,7 +59,7 @@ class RumorView(object):
         if columns is None:
             columns = self.column_names
         column_summary = column_summary[
-            (column_summary["from"].isin(columns))&(column_summary["to"].isin(columns))
+            (column_summary["left"].isin(columns))&(column_summary["right"].isin(columns))
         ]
 
         nxg = nx.Graph()
@@ -68,7 +69,8 @@ class RumorView(object):
         for row_ind, row in column_summary.iterrows():
             if row["max(lift)"] >= min_lift:
                 nxg.add_edge(
-                    row["from"], row["to"], title=f'lift={row["max(lift)"]:.1%}', value=row["max(lift)"]
+                    row["left"], row["right"], value=row["max(lift)"], 
+                    title=f'lift={row["max(lift)"]:.1%}'
                 )
         print(f"showing edges with lift >= {min_lift}")
         if target_column:
@@ -144,25 +146,22 @@ class RumorView(object):
         return df.iloc[c1_ind, c2_ind]
     
     def _create_column_summary(self, min_size):
-        from_list = []
-        to_list = []
+        left_list = []
+        right_list = []
         lift_list = []
-        for c1 in self.index_dict.keys():
+        for c1, c2 in itertools.combinations(self.index_dict.keys(), 2):
             c1_ind = sorted(self.index_dict[c1].values())
+            c2_ind = sorted(self.index_dict[c2].values())
             c1_nodes = [self.node_names[c] for c in c1_ind if self.node_prob[c] > min_size]
-            for c2 in self.index_dict.keys():
-                if c1 == c2:
-                    continue
-                c2_ind = sorted(self.index_dict[c2].values())
-                c2_nodes = [self.node_names[c] for c in c2_ind if self.node_prob[c] > min_size]
-                lift_df_2c = self.lift_df.loc[c2_nodes, c1_nodes]
-                max_lift = lift_df_2c.max().max()
-                from_list.append(c1)
-                to_list.append(c2)
-                lift_list.append(max_lift)
+            c2_nodes = [self.node_names[c] for c in c2_ind if self.node_prob[c] > min_size]
+            lift_df = self.lift_df.loc[c1_nodes, c2_nodes]
+            max_lift = lift_df.max().max()
+            left_list.append(c1)
+            right_list.append(c2)
+            lift_list.append(max_lift)
         return pandas.DataFrame({
-            "from": from_list,
-            "to": to_list,
+            "left": left_list,
+            "right": right_list,
             "max(lift)": lift_list
         })
     
